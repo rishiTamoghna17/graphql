@@ -3,26 +3,17 @@ import express, { Express } from "express";
 import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { TaskResolver } from "./resolvers/task";
+import { PrismaClient } from "@prisma/client";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 
 
 const main = async () => {
-    // const conn = await createConnection({
-    //   type: "postgres",
-    //   database: "todolist-graphql-db",
-    //   entities: [Task],
-    //   logging: true,
-    //   synchronize: true,
-    //   username: "postgres",
-    //   password: "postgres",
-    //   port: 5432,
-    // });
-  
+  const prisma = new PrismaClient();
     const apolloServer = new ApolloServer({
       schema: await buildSchema({
         resolvers: [TaskResolver],
         validate: false,
-      }),
+      }),context: () => ({ prisma }),
       plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
     });
   
@@ -33,7 +24,7 @@ const main = async () => {
   
     app.get("/", (_req, res) => res.send("hello world"));
   
-    const PORT = process.env.PORT || 8000;
+    const PORT =  3000;
     app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
   };
   
