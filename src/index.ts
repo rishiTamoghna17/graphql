@@ -1,31 +1,50 @@
 import "reflect-metadata";
-import express, { Express } from "express";
+import express from "express";
 import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { TaskResolver } from "./resolvers/task";
 import { PrismaClient } from "@prisma/client";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
-
+import { createServer } from "http";
+import { SubscriptionServer } from "subscriptions-transport-ws";
+import { execute, subscribe } from "graphql";
 
 const main = async () => {
   const prisma = new PrismaClient();
-    const apolloServer = new ApolloServer({
-      schema: await buildSchema({
-        resolvers: [TaskResolver],
-        validate: false,
-      }),context: () => ({ prisma }),
-      plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
-    });
-  
-    await apolloServer.start();
-    const app: Express = express();
-  
-    apolloServer.applyMiddleware({ app });
-  
-    app.get("/", (_req, res) => res.send("hello world"));
-  
-    const PORT =  3000;
-    app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
-  };
-  
-  main().catch((err) => console.error(err));
+  const app = express();
+
+  const apolloServer = new ApolloServer({
+    schema: await buildSchema({
+      resolvers: [TaskResolver],
+      validate: false,
+    }),
+    context: () => ({ prisma }),
+    plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
+  });
+
+  await apolloServer.start();
+  apolloServer.applyMiddleware({ app });
+
+  const httpServer = createServer(app);
+
+  httpServer.listen({ port: 3000 }, async () => {
+    console.log("Server started on http://localhost:3000/graphql");
+    new SubscriptionServer(
+      {
+        execute,
+        subscribe,
+        schema: await buildSchema({
+          resolvers: [TaskResolver],
+          validate: false,
+        }),
+      },
+      {
+        server: httpServer,
+        path: apolloServer.graphqlPath,
+      }
+    );
+  });
+};
+
+main().catch((err) => console.error(err));
+
