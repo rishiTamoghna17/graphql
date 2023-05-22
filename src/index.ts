@@ -27,8 +27,8 @@ const main = async () => {
 
   const httpServer = createServer(app);
 
-  httpServer.listen({ port: 3000 }, async () => {
-    console.log("Server started on http://localhost:3000/graphql");
+  httpServer.listen({ port: 8000 }, async () => {
+    console.log("Server started on http://localhost:8000/graphql");
     new SubscriptionServer(
       {
         execute,
