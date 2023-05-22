@@ -47,7 +47,6 @@ export class TaskResolver {
     const cachedTasks = await redis.get("tasks");
     if (cachedTasks) {
       //   If tasks exist in the cache, return them directly
-      console.log(JSON.parse(cachedTasks))
       return JSON.parse(cachedTasks);
     } else {
       //  If tasks don't exist in the cache, fetch them from the database
