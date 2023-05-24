@@ -51,7 +51,7 @@ export class TaskResolver {
     } else {
       //  If tasks don't exist in the cache, fetch them from the database
       const tasks = await this.prisma.task.findMany();
-      
+
       // Store the tasks in the cache for future use
       await redis.set("tasks", JSON.stringify(tasks));
 
@@ -61,13 +61,13 @@ export class TaskResolver {
 
   @Mutation(() => TaskType)
   async createTask(
-    @Arg("title", { nullable: true }) title?: string,
-    @Arg("isComplete") isComplete?: boolean
+    @Arg("title", { nullable: true }) title?: string
   ): Promise<Task> {
-    const task = await this.prisma.task.create({ data: { title, isComplete } });
+    const task = await this.prisma.task.create({ data: { title } });
     //publish the create task to the subscription
     await this.pubsub.publish("TASK_CREATED", task);
     // Invalidate the "tasks" cache since a new task was created
+    await redis.del("tasks");
     return task;
   }
 
@@ -93,9 +93,11 @@ export class TaskResolver {
     await this.prisma.task.delete({ where: { id } });
     // Publish the ID of the deleted task to the subscription channel
     await this.pubsub.publish("TASK_DELETED", id);
+    await redis.del("tasks");
     return true;
   }
 
+  //subcription
   @Subscription(() => TaskType, {
     topics: "TASK_CREATED",
   })
